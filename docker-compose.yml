@@ -1,0 +1,27 @@
+services:
+  ros2_project:
+    build: .
+    container_name: my_nn_project
+    stdin_open: true
+    tty: true
+    privileged: true
+    command: sleep infinity
+    networks:
+      - ros_net
+    volumes:
+      - ./src:/root/project_ws/src
+      - ./data:/root/data
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - DISPLAY=${DISPLAY}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  ros_net:
+    driver: bridge
