@@ -1,0 +1,13 @@
+build/
+install/
+log/
+
+.venv/
+venv/
+ros_venv/
+
+__pycache__/
+*.pyc
+
+
+data/
