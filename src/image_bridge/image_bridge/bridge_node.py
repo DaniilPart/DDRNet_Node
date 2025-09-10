@@ -16,7 +16,7 @@ class ImageProcessingNode(Node):
         
         self.declare_parameter('input_topic', '/camera/image_raw')
         self.declare_parameter('output_topic', '/inference/image_overlay')
-        self.declare_parameter('onnx_provider', 'CUDAExecutionProvider')
+        self.declare_parameter('onnx_provider', 'OpenVINOExecutionProvider')
 
         input_topic = self.get_parameter('input_topic').get_parameter_value().string_value
         output_topic = self.get_parameter('output_topic').get_parameter_value().string_value
@@ -52,9 +52,6 @@ class ImageProcessingNode(Node):
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
         
-        self.palette = np.zeros((256, 3), dtype=np.uint8)
-        self.palette[1] = [0, 255, 0] 
-
         self.get_logger().info(f"Node '{self.get_name()}' started successfully.")
         self.get_logger().info(f"Subscribing to: {input_topic}")
         self.get_logger().info(f"Publishing to: {output_topic}")
@@ -73,21 +70,21 @@ class ImageProcessingNode(Node):
         ort_outs = self.onnx_session.run(['outputy'], ort_inputs)
         prediction = ort_outs[0][0]
 
-        color_mask_rgb = self.palette[prediction.astype(np.uint8)]
-        color_mask_resized = cv2.resize(
-            color_mask_rgb, 
-            (cv_image.shape[1], cv_image.shape[0]), 
+        binary_mask = (prediction == 1).astype(np.uint8) 
+
+        binary_mask_resized = cv2.resize(
+            binary_mask,
+            (cv_image.shape[1], cv_image.shape[0]),
             interpolation=cv2.INTER_NEAREST
         )
-        color_mask_bgr = cv2.cvtColor(color_mask_resized, cv2.COLOR_RGB2BGR)
-        overlay_image = cv2.addWeighted(cv_image, 0.6, color_mask_bgr, 0.4, 0)
-
         try:
-            overlay_msg = self.bridge.cv2_to_imgmsg(overlay_image, "bgr8")
-            overlay_msg.header = msg.header
-            self.publisher.publish(overlay_msg)
+            #For Black/White output
+            # mask_msg = self.bridge.cv2_to_imgmsg(binary_mask_resized * 255, "mono8")
+            mask_msg = self.bridge.cv2_to_imgmsg(binary_mask_resized, "mono8")
+            mask_msg.header = msg.header
+            self.publisher.publish(mask_msg)
         except Exception as e:
-            self.get_logger().error(f'Could not publish image: {e}')
+            self.get_logger().error(f'Could not publish mask: {e}')
 
 
 def main(args=None):
