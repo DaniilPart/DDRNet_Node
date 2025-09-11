@@ -79,8 +79,8 @@ class ImageProcessingNode(Node):
         )
         try:
             #For Black/White output
-            # mask_msg = self.bridge.cv2_to_imgmsg(binary_mask_resized * 255, "mono8")
-            mask_msg = self.bridge.cv2_to_imgmsg(binary_mask_resized, "mono8")
+            mask_msg = self.bridge.cv2_to_imgmsg(binary_mask_resized * 255, "mono8")
+            #mask_msg = self.bridge.cv2_to_imgmsg(binary_mask_resized, "mono8")
             mask_msg.header = msg.header
             self.publisher.publish(mask_msg)
         except Exception as e:
